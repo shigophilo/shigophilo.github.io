@@ -12,7 +12,7 @@ A few days ago, an [issue](https://github.com/itm4n/PPLdump/issues/12) was opene
 
 If you are reading this, I would assume that you already know what PPLdump is and what it does. But just in case you do not, here is a very brief summary.
 
-[PPLdump](https://github.com/itm4n/PPLdump) is a tool written in C/C++ that implements a userland exploit for injecting arbitrary code into a PPL as an administrator. This technique is one of the many findings of a thorough research conducted by Alex Ionescu and James Forshaw about Protected Processes (PPs and PPLs).
+[PPLdump](https://github.com/itm4n/PPLdump) is a tool written in C/C++ that implements a _Userland_ exploit for injecting arbitrary code into a PPL as an administrator. This technique is one of the many findings of thorough research conducted by Alex Ionescu and James Forshaw about Protected Processes (PPs and PPLs).
 
 As a reminder, it works like this:
 
@@ -20,7 +20,7 @@ As a reminder, it works like this:
 2. A new Section object (pointed to by the previous Symbolic Link) is created to host the content of a custom DLL that contains the code we want to inject.
 3. A DLL imported by an executable running as a PPL is hijacked and our code is executed.
 
-The most important thing to keep in mind here is that the whole exploit relies on a weakness that _exists_ in PPLs but not in PPs. Indeed, _PPLs can load DLLs from the `\KnownDlls` directory_, whereas PPs always load DLL from the disk. This is a key difference because the digital signature of a DLL is only checked when it is initially read from the disk to create a new Section object. It is not checked afterwards when it is mapped in the virtual address space of the Process.
+The most important thing to keep in mind here is that the whole exploit relies on a weakness that _exists_ in PPLs but not in PPs. Indeed, _PPLs can load DLLs from the `\KnownDlls` directory_, whereas PPs always load DLLs from the disk. This is a key difference because the digital signature of a DLL is only checked when it is initially read from the disk to create a new Section object. It is not checked afterward when it is mapped in the virtual address space of the Process.
 
 ## What is going on with build 19044.1826?
 
@@ -56,7 +56,7 @@ In such a situation, the obvious thing to do is to fire up Process Monitor and s
 
 ![PPLdump debug with Process Monitor](/assets/posts/2022-07-24-the-end-of-ppldump/02_procmon_dll_loading.png)
 
-From the very first events we can already see that something is not going as planned. Since `services.exe` is executed as a PPL, we should not see any file operation (_e.g._ `CreateFile` or `CreateFileMapping`) on DLLs such as `kernel32.dll` and `KernelBase.dll` because these are __Known DLLs__. Instead, they should be loaded directly from their respective sections `\KnownDlls\kernel32.dll` and `\KnownDlls\kernelbase.dll`.
+From the very first events, we can already see that something is not going as planned. Since `services.exe` is executed as a PPL, we should not see any file operation (_e.g._ `CreateFile` or `CreateFileMapping`) on DLLs such as `kernel32.dll` and `KernelBase.dll` because these are __Known DLLs__. Instead, they should be loaded directly from their respective sections `\KnownDlls\kernel32.dll` and `\KnownDlls\kernelbase.dll`.
 
 The conclusion is that PPLs now appear to be behaving just like PPs and therefore no longer rely on _Known DLLs_.
 
@@ -91,7 +91,7 @@ We can also see that there is one unmatched function, which was added in the new
 
 Initially, when a new process is created, only NTDLL is loaded. The _image loader_ implemented in NTDLL is responsible for loading other DLLs (among a lot of other things). To determine whether it should use the _Known DLLs_ or not, it simply checks a couple of flags in the __Process Environment Block__ (`PEB`).
 
-This check is highlighted on the following screenshot (build version `10.0.19044.1741`).
+This check is highlighted in the following screenshot (build version `10.0.19044.1741`).
 
 ![Protection flag check](/assets/posts/2022-07-24-the-end-of-ppldump/07_ntdll-1741-peb-check.png)
 
@@ -123,7 +123,7 @@ typedef struct _PEB
 }
 ```
 
-At the offset 3 (`peb + 3` in the `if` statement), we can find a byte value that holds a set of 8 bit flags. The least significant bit holds the value of the `ImageUsesLargePages` flag whilst the most significant bit holds the value of the `IsLongPathAwareProcess` flag.
+At the offset 3 (`peb + 3` in the `if` statement), we can find a byte value that holds a set of 8-bit flags. The least significant bit holds the value of the `ImageUsesLargePages` flag whilst the most significant bit holds the value of the `IsLongPathAwareProcess` flag.
 
 ![BitField](/assets/posts/2022-07-24-the-end-of-ppldump/08_peb-bitfield.svg)
 
@@ -141,7 +141,7 @@ In other words, _Known DLLs_ are ignored __only if__ the process is a __PP__ and
 
 If we search for the same line of code, we immediately realize that there is an additional check that depends on the value returned by `Feature_Servicing_2206c_38427506__private_IsEnabled()`. What a coincidence!
 
-![Ghidra - A check was added in the loader](/assets/posts/2022-07-24-the-end-of-ppldump/09_ntdll-1806-peb-check.png)
+![Ghidra - A check was added to the loader](/assets/posts/2022-07-24-the-end-of-ppldump/09_ntdll-1806-peb-check.png)
 
 In the `else` block, we can see the following check.
 
@@ -187,7 +187,7 @@ if (bFeatureEnabled == FALSE) {
 
 The patch seems pretty clear now. First, there is a check on a "_feature servicing_" value. If this feature is disabled, the loader falls back to the previous version of the code and thus PPLs load _Known DLLs_. On the other hand, if this feature is enabled, the loader simply checks whether the flag `peb->IsProtectedProcess` is set or not. So, a _protected process_ (be it a PP or a PPL) will not use _Known DLLs_.
 
-## An new check in the loader
+## A new check in the loader
 
 In the previous part, we saw that the result of `Feature_Servicing_2206c_38427506__private_IsEnabled()` determines the logic that the loader will use regarding _Protected Processes_ and _Known DLLs_. At first glance, this function does not seem that complex so let's see what we can learn about it.
 
@@ -270,19 +270,19 @@ Feature_Servicing_2206c_38427506__private_featureState: 0x00000013
 Feature enabled: 0
 ```
 
-The value of `Feature_Servicing_..._featureState` is `0x0000001b`, which translates to `0001 1011` in binary. The fourth bit being set, the return value is `1`. In the second part I manually unset the fourth bit using a bitwise AND operation with the mask `1111 0111` (_i.e._ `0xf7`). In this case, the return value is `0`, which tends to confirm my interpretation of the code.
+The value of `Feature_Servicing_..._featureState` is `0x0000001b`, which translates to `0001 1011` in binary. As the fourth bit is set, the return value is `1`. In the second part, I manually unset the fourth bit using a bitwise AND operation with the mask `1111 0111` (_i.e._ `0xf7`). In this case, the return value is `0`, which tends to confirm my interpretation of the code.
 
 Finally, and for good measure, we can also manually set the value of `Feature_Servicing_..._featureState` to `0` and check the value returned by `wil_..._ReevaluateCachedFeatureEnabledState(...)` to make sure it is `0x1b`.
 
 ![WinDbg - Cached value reevaluate](/assets/posts/2022-07-24-the-end-of-ppldump/12_windbg-feature-state-reevaluate.png)
 
-The return value (see `RAX`) is actually `0x7ff700000000001b` but the `EAX` register (_i.e._ the first 32 bits of `RAX`) is used in the following operations (`mov ebx,eax`) so the effective value is indeed `0x0000001b`.
+The return value (see `RAX`) is `0x7ff700000000001b` but the `EAX` register (_i.e._ the first 32 bits of `RAX`) is used in the following operations (`mov ebx,eax`) so the effective value is indeed `0x0000001b`.
 
 ## Conclusion
 
-I'm not sure what motivated Microsoft to differentiate PPs and PPLs regarding _Known DLLs_ in the first place. Perhaps it was a matter of performance, I don't know. Anyhow, they were already aware of this potential weakness, otherwise they wouldn't have made an exception for PPs I guess. The thing is, this security hole is now patched and that's a good step forward. I like to think I played a little role in this change although I'm totally aware that all the work had already been done by Alex and James.
+I'm not sure what motivated Microsoft to differentiate PPs and PPLs regarding _Known DLLs_ in the first place. Perhaps it was a matter of performance, I don't know. Anyhow, they were already aware of this potential weakness, otherwise, they wouldn't have made an exception for PPs I guess. The thing is, this security hole is now patched and that's a good step forward. I like to think I played a little role in this change although I'm aware that all the work had already been done by Alex and James.
 
-In conclusion, this is indeed "_The End of PPLdump_". However, this tool leveraged only one weakness of PPLs, but there is a couple of other userland issues we can probably still exploit. So, from my standpoint, it is also an opportunity to start working on another bypass...
+In conclusion, this is truly _The End of PPLdump_. However, this tool leveraged only one weakness of PPLs, but there is a couple of other _Userland_ issues we can probably still exploit. So, from my standpoint, it is also an opportunity to start working on another bypass...
 
 ## Links & Resources
 

@@ -10,17 +10,17 @@ You probably have already heard or read about this clever __Credential Guard__ b
 
 ## Background
 
-As a reminder, when (Windows Defender) __Credential Guard__ is enabled on a Windows host, there are two `lsass.exe` processes, the usual one and one running inside a Hyper-V Virtual Machine. Accessing the juicy stuff in this isolated `lsass.exe` process therefore means breaking the hypervisor, which is not an easy task.
+As a reminder, when (Windows Defender) __Credential Guard__ is enabled on a Windows host, there are two `lsass.exe` processes, the usual one and one running inside a Hyper-V Virtual Machine. Therefore, accessing the juicy stuff in this isolated `lsass.exe` process means breaking the hypervisor, which is not an easy task.
 
 ![](/assets/posts/2022-05-23-credential-guard-bypass/00_credential-guard.png)
 
 _Source: [https://docs.microsoft.com/en-us/windows/security/identity-protection/credential-guard/credential-guard-how-it-works](https://docs.microsoft.com/en-us/windows/security/identity-protection/credential-guard/credential-guard-how-it-works)_
 
-Though, in August 2020, an article was posted on Team Hydra's blog with the following title: [Bypassing Credential Guard](https://teamhydra.blog/2020/08/25/bypassing-credential-guard/). In this post, [@N4k3dTurtl3](https://twitter.com/N4k3dTurtl3) discussed a very clever and simple trick. In short, the too well-known __WDigest__ module (`wdigest.dll`), which is loaded by LSASS, has two interesting global variables: `g_IsCredGuardEnabled` and `g_fParameter_UseLogonCredential`. Their name is rather self explanatory, the first one holds the state of Credential Guard within the module (is it enabled or not?), the second one determines whether clear-text passwords should be stored in memory. By flipping these two values, you can trick the WDigest module into acting as if Credential Guard was not enabled and if the system was configured to keep clear-text passwords in memory. Once these two values have been properly patched within the LSASS process, the latter will keep a copy of the users' password when the next authentication occurs. In other words, you won't be able to access previously stored credentials but you will be able to extract clear-text passwords afterwards.
+Though, in August 2020, an article was posted on Team Hydra's blog with the following title: [Bypassing Credential Guard](https://teamhydra.blog/2020/08/25/bypassing-credential-guard/). In this post, [@N4k3dTurtl3](https://twitter.com/N4k3dTurtl3) discussed a very clever and simple trick. In short, the well-known **WDigest** module (`wdigest.dll`), which is loaded by LSASS, has two interesting global variables: `g_IsCredGuardEnabled` and `g_fParameter_UseLogonCredential`. Their name is rather self-explanatory, the first one holds the state of Credential Guard within the module (is it enabled or not?), and the second one determines whether clear-text passwords should be stored in memory. By flipping these two values, you can trick the WDigest module into acting as if Credential Guard was not enabled and if the system was configured to keep clear-text passwords in memory. Once these two values have been properly patched within the LSASS process, the latter will keep a copy of the user's password when the next authentication occurs. In other words, you won't be able to access previously stored credentials but you will be able to extract clear-text passwords afterward.
 
-The implementation of this technique is rather simple. You first determine the offsets of the two global variables by loading `wdigest.dll` in a disassembler or a debugger along with the public symbols (the offsets may vary depending on the file version). After that, you just have to find the module's base address to calculate their absolute address. Once their location is known, the values can be patched and/or restored in the target `lsass.exe` process.
+The implementation of this technique is rather simple. You first determine the offsets of the two global variables by loading `wdigest.dll` in a disassembler or a debugger along with the public symbols (the offsets may vary depending on the file version). After that, you just have to find the module's base address to calculate their absolute addresses. Once their location is known, the values can be patched and/or restored in the target `lsass.exe` process.
 
-The original PoC is available [here](https://gist.github.com/N4kedTurtle/8238f64d18932c7184faa2d0af2f1240). I found two other projects implementing it: [WdToggle](https://github.com/outflanknl/WdToggle) (a BOF module for Cobalt Strike) and [EDRSandblast](https://github.com/wavestone-cdt/EDRSandblast). All these implementations rely on hardcoded offsets, but is there a more elegant way? Is it possible to find them at run-time?
+The original Proof-of-Concept is available [here](https://gist.github.com/N4kedTurtle/8238f64d18932c7184faa2d0af2f1240). I found two other projects implementing it: [WdToggle](https://github.com/outflanknl/WdToggle) (a BOF module for Cobalt Strike) and [EDRSandblast](https://github.com/wavestone-cdt/EDRSandblast). All these implementations rely on hardcoded offsets, but is there a more elegant way? Is it possible to find them at run-time?
 
 ## We need a plan
 
@@ -34,9 +34,9 @@ If we take a look at what surrounds these two values, we can see that there is j
 
 ![](/assets/posts/2022-05-23-credential-guard-bypass/02_ghidra-uninitialized-data.png)
 
-So, searching directly in the `.data` section is definitely not the way to go. There is a better approach, rather than searching for these values, we can search for cross references! The reason for these global variables to even exist in the first place is because they are used somewhere in the code. Therefore, if we can find these references, we can also find the variables.
+So, searching directly in the `.data` section is not the way to go. There is a better approach, rather than searching for these values, we can search for cross-references! The reason for these global variables to even exist in the first place is that they are used somewhere in the code. Therefore, if we can find these references, we can also find the variables.
 
-Ghidra conveniently lists all the cross-references in the "Listing" view, so let's see if there is anything interesting.
+Ghidra conveniently lists all the cross-references in the "Listing" view, so let's see if there is anything of interest.
 
 ![](/assets/posts/2022-05-23-credential-guard-bypass/03_ghidra-global-variables-xrefs.png)
 
@@ -48,7 +48,7 @@ We can go to the "Decompile" view and have a glimpse at how these variables are 
 
 ![](/assets/posts/2022-05-23-credential-guard-bypass/05_ghidra-spinitialize-refs.png)
 
-The `RegQueryValueExW` call is interesting because the x86 opcode of a function call is rather easy to identify. From there, we could then work backwards and see how the fifth argument is handled. This is a potential avenue to consider so let's keep it in mind.
+The `RegQueryValueExW` call is interesting because the x86 opcode of a function call is rather easy to identify. From there, we could then work backward and see how the fifth argument is handled. This is a potential avenue to consider so let's keep it in mind.
 
 That would be a way to identify the `g_fParameter_UseLogonCredential` variable but what about `g_IsCredGuardEnabled`? The code from the "Decompile" view is not that easy to interpret as is, so we will have to go a bit deeper.
 
@@ -92,7 +92,7 @@ typedef struct _SECPKG_PARAMETERS {
 } SECPKG_PARAMETERS, *PSECPKG_PARAMETERS, SECPKG_EVENT_DOMAIN_CHANGE, *PSECPKG_EVENT_DOMAIN_CHANGE;
 ```
 
-The documentation provides a list of possible flags for the `MachineState` attribute but it does not tell us what flag corresponds to the value `0x20`. However it does tell us that the `SECPKG_PARAMETERS` structure is defined in the header file `ntsecpkg.h`. If so, we should find it in the Windows SDK, along with the `SECPKG_STATE_*` flags.
+The documentation provides a list of possible flags for the `MachineState` attribute but it does not tell us what flag corresponds to the value `0x20`. However, it does tell us that the `SECPKG_PARAMETERS` structure is defined in the header file `ntsecpkg.h`. If so, we should find it in the Windows SDK, along with the `SECPKG_STATE_*` flags.
 
 ```cpp
 // Values for MachineState
@@ -114,7 +114,7 @@ g_IsCredGuardEnabled = (param_2->MachineState & SECPKG_STATE_CRED_ISOLATION_ENAB
 
 __Note:__ I could have also helped Ghidra a bit by defining this structure and editing the prototype of the `SpInitialize` function to achieve a similar result.
 
-That's all very well, but do we have clear opcode patterns to search for? The answer is "not really"... Prior to the `RegQueryValueExW` call, a reference to `g_fParameter_UseLogonCredential` is loaded in `RAX`, that's a rather common operation and we cannot rely on the fact that the compiler will use the same register every time. After the call to `RegQueryValueExW`, `g_fParameter_UseLogonCredential` is set to `0` in an `if` statement. Again this is a generic operation so it is not good enough for establishing a pattern. As for `g_IsCredGuardEnabled`, there is an interesting set of instructions but we cannot rely on the fact that the compiler will produce the same code every time here either.
+That's all very well, but do we have clear opcode patterns to search for? The answer is "not really"... Before the `RegQueryValueExW` call, a reference to `g_fParameter_UseLogonCredential` is loaded in `RAX`, that's a rather common operation and we cannot rely on the fact that the compiler will use the same register every time. After the call to `RegQueryValueExW`, `g_fParameter_UseLogonCredential` is set to `0` in an `if` statement. Again this is a generic operation so it is not good enough for establishing a pattern. As for `g_IsCredGuardEnabled`, there is an interesting set of instructions but we cannot rely on the fact that the compiler will produce the same code every time here either.
 
 ```nasm
 ; Before the call to RegQueryValueExW
@@ -164,7 +164,7 @@ mov    eax,dword ptr [rip + 0x343c3]  ; 8b 05 c3 43 03 00
 jnz    0x77ae                         ; 0f 85 9c 77 00 00
 ```
 
-On the first line, the first byte - `39` - is the opcode of the `CMP` instruction to compare a 16 or 32 bit register against a 16 or 32 bit value in another register or a memory location. Then, `1d` represents the source register (`EBX` in this case). Finally, `75 49 03 00` is the little endian representation of the offset of `g_fParameter_UseLogonCredential` relative to `RIP` (`rip+0x34975`). The second line works pretty much the same way although it is a `MOV` instruction.
+On the first line, the first byte - `39` - is the opcode of the `CMP` instruction to compare a 16 or 32-bit register against a 16 or 32-bit value in another register or a memory location. Then, `1d` represents the source register (`EBX` in this case). Finally, `75 49 03 00` is the little-endian representation of the offset of `g_fParameter_UseLogonCredential` relative to `RIP` (`rip+0x34975`). The second line works pretty much the same way although it is a `MOV` instruction.
 
 The third line represents a conditional jump, which won't help us establish a reliable pattern. If we consider only the first two lines though, we can already build a potential pattern: `39 ?? ?? ?? ?? 00 8b ?? ?? ?? ?? 00`. We just make the reasonable assumption that the offsets won't exceed the value `0x00ffffff`.
 
@@ -176,7 +176,7 @@ To my surprise, this simple pattern yielded only one result in the entire file. 
 
 There is still one last problem. I tested the pattern against a single file. What if this pattern is not generic enough or what if it yields false positives in other versions of `wdigest.dll`? If only there was an easy way to get my hands on multiple versions of the file to verify that...
 
-And here comes the [The Windows Binaries Index](https://winbindex.m417z.com/) (or "Winbindex"). This is a nicely designed web application that aggregates all the metadata from update packages released by Microsoft. It also provides a link whenever the file is available for download. Kudos to [@m417z](https://twitter.com/m417z) for this tool, this is a game changer. From the home page, I can simply search for `wdigest.dll` and virtually get access to any version of the file.
+And here comes the [The Windows Binaries Index](https://winbindex.m417z.com/) (or "Winbindex"). This is a nicely designed web application that aggregates all the metadata from update packages released by Microsoft. It also provides a link whenever the file is available for download. Kudos to [@m417z](https://twitter.com/m417z) for this tool, this is a game-changer. From the home page, I can simply search for `wdigest.dll` and virtually get access to any version of the file.
 
 ![](/assets/posts/2022-05-23-credential-guard-bypass/08_winbindex-wdigest.png)
 
@@ -190,7 +190,7 @@ Let me quickly recap what we are trying to achieve. We want to read and patch tw
 
 ### Searching for our code pattern
 
-We want to find a portion of the code that matches the pattern `39 ?? ?? ?? ?? 00 8b ?? ?? ?? ?? 00`. To do so, we have to first locate the `.text` section of the `wdigest.dll` PE file. There are two ways to do this. We can either load the module in the memory of our process or read the file from disk. I decided to go for the second option (for no particular reason).
+We want to find a portion of the code that matches the pattern `39 ?? ?? ?? ?? 00 8b ?? ?? ?? ?? 00`. To do so, we have to first locate the `.text` section of the `wdigest.dll` PE file. There are two ways to do this. We can either load the module in the memory of our process or read the file from the disk. I decided to go for the second option (for no particular reason).
 
 Locating the `.text` section is easy. The first bytes of the PE file contain the DOS header, which gives us the offset to the NT headers (`e_lfanew`). In the NT headers, we find the `FileHeader` member, which gives us the number of sections (`NumberOfSections`).
 
@@ -216,7 +216,7 @@ typedef struct _IMAGE_FILE_HEADER {
 } IMAGE_FILE_HEADER, *PIMAGE_FILE_HEADER;
 ```
 
-We can then simply iterate the section headers that are located after the NT headers, until with find the one with the name `.text`.
+We can then simply iterate the section headers that are located after the NT headers until we find the one with the name `.text`.
 
 ```cpp
 typedef struct _IMAGE_SECTION_HEADER {
@@ -253,7 +253,7 @@ while (j < sh.SizeOfRawData) {
 
 However, I do not stop at the first occurrence. As a simple safeguard, I check the entire section and count the number of times the pattern is matched. If this count is 0, obviously this means that the search failed. But if the count is greater than 1, I also consider that it failed. I want to make sure that the pattern matches only once.
 
-Just for testing purposes and out of curiosity, I also tried several variants of the pattern to sort of see how efficient it was. Surprisingly, the count dropped very quickly with only two occurrences for the variant #2.
+Just for testing purposes and out of curiosity, I also tried several variants of the pattern to sort of see how efficient it was. Surprisingly, the count dropped very quickly with only two occurrences for variant #2.
 
 | Variant | Pattern | Occurrences |
 | :---: | :---: | :---: |
@@ -284,7 +284,7 @@ cmp    dword ptr [rip + 0x34975], ebx   ; 39 1D   75 49 03 00
 mov    eax, dword ptr [rip + 0x343c3]   ; 8B 05   C3 43 03 00
 ```
 
-And here is the thing I intentionally glossed over in the first part. Since I am no used to reading assembly code, these two lines initially puzzled me. I was expecting to find the addresses of the two variables directly in the code, but instead, I found only RIP-relative offsets.
+And here is the thing I intentionally glossed over in the first part. Since I am not used to reading assembly code, these two lines initially puzzled me. I was expecting to find the addresses of the two variables directly in the code, but instead, I found only RIP-relative offsets.
 
 I learned that the `x86_64` architecture indeed uses RIP-relative addressing to reference data. As explained in this [post](http://www.nynaeve.net/?p=192), the main advantage of using this kind of addressing is that it produces Position Independent Code (PIC).
 
@@ -292,13 +292,13 @@ The RIP-relative address of `g_fParameter_UseLogonCredential` is `rip+0x34975`. 
 
 ![](/assets/posts/2022-05-23-credential-guard-bypass/10_ghidra-uselogoncredential-addr.png)
 
-But the offset is actually `0x361b4`. Oh, wait... When an instruction is executed, RIP actually already points to the next one. This means that we must add `6`, the length of the `CMP` instruction, to this value: `0x00001839 + 6 + 0x34975 = 0x361b4`. Here we go!
+But the offset is `0x361b4`. Oh, wait... When an instruction is executed, RIP already points to the next one. This means that we must add `6`, the length of the `CMP` instruction, to this value: `0x00001839 + 6 + 0x34975 = 0x361b4`. Here we go!
 
 We apply the same method to the second variable - `g_IsCredGuardEnabled` - and we find: `0x00001839 + 6 + 6 + 0x343c3 = 0x35c08`.
 
 ![](/assets/posts/2022-05-23-credential-guard-bypass/11_ghidra-iscredguardenabled-addr.png)
 
-We identified the 12 bytes of code and we know their offset in the PE, so the implementation is pretty easy. The RIP-relative offsets are stored using the little endian representation, so we can directly copy the four bytes into `DWORD` temporary variables if we want to interpret them as `unsigned long` values.
+We identified the 12 bytes of code and we know their offset in the PE, so the implementation is pretty easy. The RIP-relative offsets are stored using the little-endian representation, so we can directly copy the four bytes into `DWORD` temporary variables if we want to interpret them as `unsigned long` values.
 
 ```cpp
 DWORD dwUseLogonCredentialOffset, dwIsCredGuardEnabledOffset;
@@ -333,11 +333,11 @@ Now that we know the _absolute_ offsets of the two global variables, we must det
 
 Ideally, we would like to interact as less as possible with LSASS, but as we need to patch it anyway, this method works perfectly fine. I just wanted to take this opportunity to present another approach and discuss some aspects of Windows DLLs.
 
-The key thing is that the base address of a module is determined when it is first loaded. Therefore, any subsequent process loading this module will use the exact same base address. In our case, this means that if we load `wdigest.dll` in our current process, we will be able to determine its base address without even having to touch LSASS. (I will admit that this sounds a bit dumb because the whole purpose is to eventually patch it.)
+The key thing is that the base address of a module is determined when it is first loaded. Therefore, any subsequent process loading this module will use the same base address. In our case, this means that if we load `wdigest.dll` in our current process, we will be able to determine its base address without even having to touch LSASS. (I will admit that this sounds a bit dumb because the whole purpose is to eventually patch it.)
 
-Loading a DLL is commonly done through the Windows API `LoadLibraryW` or `LoadLibraryExW`. The documentation states that they return "_a handle to the module_", but I would say that it is a bit misleading. These functions actually return a `HMODULE`, which is not a typical kernel object `HANDLE`. In  reality, the `HMODULE` value is... the base address of the module.
+Loading a DLL is commonly done through the Windows API `LoadLibraryW` or `LoadLibraryExW`. The documentation states that they return "_a handle to the module_", but I would say that it is a bit misleading. These functions return a `HMODULE`, which is not a typical kernel object `HANDLE`. In reality, the `HMODULE` value is... the base address of the module.
 
-In conclusion, we can get the base address of `wdigest.dll` in the `lsass.exe` process simply by running the following code in our own context. One could argue that loading `wdigest.dll` might look suspicious, but it is nothing compared to patching LSASS anyway so this is not really my concern here.
+In conclusion, we can get the base address of `wdigest.dll` in the `lsass.exe` process simply by running the following code in our context. One could argue that loading `wdigest.dll` might look suspicious, but it is nothing compared to patching LSASS anyway so this is not my concern here.
 
 ```cpp
 HMODULE hModule;
@@ -367,15 +367,15 @@ We can confirm that the base address of `wdigest.dll` is the same by inspecting 
 
 ## Conclusion
 
-The first thing I want to say is thank you to [@N4k3dTurtl3](https://twitter.com/N4k3dTurtl3) for the initial post on this subject. I really liked the simplicity and efficiency of this trick. It always amazes me how this kind of hack can defeat really advanced protections such as Credential Guard.
+The first thing I want to say is thanks to [@N4k3dTurtl3](https://twitter.com/N4k3dTurtl3) for the initial post on this subject. I liked the simplicity and efficiency of this trick. It always amazes me how this kind of hack can defeat advanced protections such as Credential Guard.
 
-Now, the question is, as a pentester (or a red teamer), should you use the technique I described in this post? The idea of not having to rely on hardcoded offsets and therefore running code that is version-independent is attractive. However, it might also be a bit riskier as pattern matching is not an exact science. To address this, I implemented a safeguard which consists in ensuring that the pattern is matched exactly once. This leaves us with only one potential false positive: the pattern could be matched exactly once on a _random_ portion of code, which seems rather unlikely. The only risk I see is that Microsoft could slightly change the implementation so that my pattern just no longer works.
+Now, the question is, as a pentester (or a red teamer), should you use the technique I described in this post? The idea of not having to rely on hardcoded offsets and therefore running version-independent code is attractive. However, it might also be a bit riskier as pattern matching is not an exact science. To address this, I implemented a safeguard that consists in ensuring that the pattern is matched exactly once. This leaves us with only one potential false positive: the pattern could be matched exactly once on a _random_ portion of code, which seems rather unlikely. The only risk I see is that Microsoft could slightly change the implementation so that my pattern just no longer works.
 
-As for defenders, enabling Credential Guard should not refrain you from enabling LSA protection as well. We all know that it can be completely bypassed, but this operation has a cost for an attacker. It requires to run code in the Kernel or use a sophisticated userland bypass, which both create avenues for detection. As rightly said by [@N4k3dTurtl3](https://twitter.com/N4k3dTurtl3):
+As for defenders, enabling Credential Guard should not refrain you from enabling LSA protection as well. We all know that it can be completely bypassed, but this operation has a cost for an attacker. It requires running code in the Kernel or using a sophisticated userland bypass, which both create avenues for detection. As rightly said by [@N4k3dTurtl3](https://twitter.com/N4k3dTurtl3):
 
 > _The goal is to increase the cost in time, effort, and tooling [...] thus making your network less appealing as a target and increasing opportunities for detection and response_.
 
-Lastly, this was a cool little challenge, not too difficult, and as always I learned a few things along the way, the perfect recipe. Oh, and if you have read this far, you can find my PoC [here](https://github.com/itm4n/Pentest-Windows/tree/main/CredGuardBypassOffsets).
+Lastly, this was a cool little challenge, not too difficult, and as always I learned a few things along the way. Oh, and if you have read this far, you can find my Proof-of-Concept [here](https://github.com/itm4n/Pentest-Windows/tree/main/CredGuardBypassOffsets).
 
 ## Links & Resources
 
