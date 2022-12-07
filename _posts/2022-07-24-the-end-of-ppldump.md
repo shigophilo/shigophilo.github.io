@@ -286,6 +286,9 @@ In conclusion, this is truly _The End of PPLdump_. However, this tool leveraged 
 
 ## Links & Resources
 
-- Windows Exploitation Tricks: Exploiting Arbitrary Object Directory Creation for Local Elevation of Privilege - [https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html](https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html)  
-- Do You Really Know About LSA Protection (RunAsPPL)? - [https://itm4n.github.io/lsass-runasppl/](https://itm4n.github.io/lsass-runasppl/)  
-- Bypassing LSA Protection in Userland - [https://blog.scrt.ch/2021/04/22/bypassing-lsa-protection-in-userland/](https://blog.scrt.ch/2021/04/22/bypassing-lsa-protection-in-userland/)  
+- Windows Exploitation Tricks: Exploiting Arbitrary Object Directory Creation for Local Elevation of Privilege  
+[https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html](https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html)
+- Do You Really Know About LSA Protection (RunAsPPL)?  
+[https://itm4n.github.io/lsass-runasppl/](https://itm4n.github.io/lsass-runasppl/)
+- Bypassing LSA Protection in Userland  
+[https://blog.scrt.ch/2021/04/22/bypassing-lsa-protection-in-userland/](https://blog.scrt.ch/2021/04/22/bypassing-lsa-protection-in-userland/)
