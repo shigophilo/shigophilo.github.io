@@ -45,7 +45,11 @@ social:
   links:
     # The first element serves as the copyright owner's link
     - https://
-    # - https://twitter.com/shigophilo      # change to your twitter homepage
+    - https://shigophilo.github.io/tools/File-Download-Generator.html
+    - https://shigophilo.github.io/tools/av.html
+    - https://shigophilo.github.io/tools/jQuery-test.html
+    - https://shigophilo.github.io/tools/Reverse-shell-cheatsheet.html
+    - https://twitter.com/shigophilo      # change to your twitter homepage
     - https://github.com/shigophilo       # change to your github homepage
     # Uncomment below to add more social links
     # - https://www.facebook.com/shigophilo
@@ -74,7 +78,7 @@ google_analytics:
 #     light  - Use the light color scheme
 #     dark   - Use the dark color scheme
 #
-theme_mode:   # [light|dark]
+theme_mode: dark  # [light|dark]
 
 # The CDN endpoint for images.
 # Notice that once it is assigned, the CDN url
