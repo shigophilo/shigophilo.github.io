@@ -21,34 +21,34 @@ timezone: Europe/Paris
 # jekyll-seo-tag settings › https://github.com/jekyll/jekyll-seo-tag/blob/master/docs/usage.md
 # ↓ --------------------------
 
-title: itm4n's blog                          # the main title
+title: ShiGoPhilo's blog                          # the main title
 
-tagline: Pentesting & Windows security research   # it will display as the sub-title
+tagline: 无业人员   # it will display as the sub-title
 
 description: >-                        # used by seo meta and the atom feed
   A blog about pentesting with a focus on Windows security research.
 
 # fill in the protocol & hostname for your site, e.g., 'https://username.github.io'
-url: 'https://itm4n.github.io'
+url: 'https://shigophilo.github.io'
 
 github:
-  username: itm4n             # change to your github username
+  username: shigophilo             # change to your github username
 
 # twitter:
-#   username: itm4n            # change to your twitter username
+#   username: shigophilo            # change to your twitter username
 
 social:
   # Change to your full name.
   # It will be displayed as the default author of the posts and the copyright owner in the Footer
-  name: itm4n
-  email: itm4n@contoso.com             # change to your email address
+  name: shigophilo
+  email: shigophilo@gmail.com             # change to your email address
   links:
     # The first element serves as the copyright owner's link
-    - https://infosec.exchange/@itm4n
-    # - https://twitter.com/itm4n      # change to your twitter homepage
-    - https://github.com/itm4n       # change to your github homepage
+    - https://
+    # - https://twitter.com/shigophilo      # change to your twitter homepage
+    - https://github.com/shigophilo       # change to your github homepage
     # Uncomment below to add more social links
-    # - https://www.facebook.com/username
+    # - https://www.facebook.com/shigophilo
     # - https://www.linkedin.com/in/username
 
 google_site_verification:               # fill in to your verification string
