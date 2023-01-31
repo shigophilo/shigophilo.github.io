@@ -35,7 +35,7 @@ copyright:
     link: https://creativecommons.org/licenses/by/4.0/
 
   # Displayed in the footer
-  brief: Some rights reserved.
+  brief: Some rights reserved. <a href="https://shigophilo.github.io/tools/av.html">AV</a>&nbsp;<a href="https://shigophilo.github.io/tools/File-Download-Generator.html">DownLoad</a>&nbsp;<a href="https://shigophilo.github.io/tools/Reverse-shell-cheatsheet.html">Shell</a>&nbsp;<a href="https://shigophilo.github.io/tools/jQuery-test.html">jQuery</a>
   verbose: >-
     Except where otherwise noted, the blog posts on this site are licensed
     under the Creative Commons Attribution 4.0 International (CC BY 4.0) License by the author.
