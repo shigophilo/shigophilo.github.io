@@ -44,7 +44,7 @@ social:
   email: shigophilo@gmail.com             # change to your email address
   links:
     # The first element serves as the copyright owner's link
-    - mailto: shigophilo@gmail.com
+    - https://shigophilo.github.io
     - https://twitter.com/shigophilo      # change to your twitter homepage
     - https://github.com/shigophilo       # change to your github homepage
     # Uncomment below to add more social links
