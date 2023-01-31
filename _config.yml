@@ -23,7 +23,7 @@ timezone: Asia/Shanghai
 
 title: ShiGoPhilo                          # the main title
 
-tagline: 无业人员,电脑网络爱好者<br>一个人有多不正经就有多深情<p><a href="https://shigophilo.github.io/tools/av.html">AV</a>&nbsp;<a href="https://shigophilo.github.io/tools/File-Download-Generator.html">DownLoad</a>&nbsp;<a href="https://shigophilo.github.io/tools/Reverse-shell-cheatsheet.html">Shell</a>&nbsp;<a href="https://shigophilo.github.io/tools/jQuery-test.html">jQuery</a>  # it will display as the sub-title
+tagline: 无业人员,电脑网络爱好者<br>一个人有多不正经就有多深情<p><a href="https://shigophilo.github.io/tool/av.html">AV</a>&nbsp;<a href="https://shigophilo.github.io/tool/File-Download-Generator.html">DownLoad</a>&nbsp;<a href="https://shigophilo.github.io/tool/Reverse-shell-cheatsheet.html">Shell</a>&nbsp;<a href="https://shigophilo.github.io/tool/jQuery-test.html">jQuery</a>  # it will display as the sub-title
 
 description: >-                        # used by seo meta and the atom feed
   A blog about pentesting with a focus on Windows security research.
