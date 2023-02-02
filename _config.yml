@@ -23,7 +23,7 @@ timezone: Asia/Shanghai
 
 title: ShiGoPhilo                          # the main title
 
-tagline: 无业人员,电脑网络爱好者<br>一个人有多不正经就有多深情  # it will display as the sub-title
+tagline: 无业人员<br>电脑网络爱好者<br>一个人有多不正经就有多深情  # it will display as the sub-title
 
 description: >-                        # used by seo meta and the atom feed
   A blog about pentesting with a focus on Windows security research.
@@ -197,10 +197,12 @@ exclude:
   - package*.json
 
 jekyll-archives:
-  enabled: [categories, tags]
+  enabled: [categories, tags, tools]
   layouts:
     category: category
     tag: tag
+    tools: tools
   permalinks:
     tag: /tags/:name/
     category: /categories/:name/
+    tools: /tools/:name/
