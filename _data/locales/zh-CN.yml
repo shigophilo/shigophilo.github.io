@@ -32,7 +32,7 @@ copyright:
   license:
     template: 本文由作者按照 :LICENSE_NAME 进行授权
     name: CC BY 4.0
-    link: 
+    link: https://creativecommons.org/licenses/by/4.0/
 
   # Displayed in the footer
   brief: 保留部分权利。
